@@ -58,6 +58,7 @@ func findAll(filePath string, phrase string) (res []Result, err error) {
 		return res, err
 	}
 	arr := strings.Split(string(data), "\n")
+
 	for i, str := range arr {
 		ind := strings.Index(str, phrase)
 		if ind > -1 {
@@ -65,9 +66,8 @@ func findAll(filePath string, phrase string) (res []Result, err error) {
 				Phrase:  phrase,
 				Line:    str,
 				LineNum: int64(i + 1),
-				ColNum:  int64(ind),
+				ColNum:  int64(ind) + 1,
 			}
-
 			res = append(res, found)
 		}
 	}
