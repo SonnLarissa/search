@@ -78,61 +78,48 @@ func findAll(filePath string, phrase string) (res []Result, err error) {
 func Any(ctx context.Context, phrase string, files []string) <-chan Result {
 	ch := make(chan Result)
 	wg := sync.WaitGroup{}
-	results := Result{}
-	//root := context.Background()
-	ctx, cansel := context.WithCancel(ctx)
+	result := Result{}
 
 	for i := 0; i < len(files); i++ {
-
 		data, err := ioutil.ReadFile(files[i])
 		if err != nil {
-			log.Println("file not found", err)
+			log.Println("error opening file: ", err)
 		}
 
 		if strings.Contains(string(data), phrase) {
-			parceRes, err := ParceForAny(string(data), phrase)
-			if err != nil {
-				log.Println(" parsing error")
-			}
-			if (Result{} != parceRes) {
-				results = parceRes
+			res := FindAny(phrase, string(data))
+			if (Result{}) != res {
+				result = res
 				break
 			}
 		}
-
-		wg.Add(1)
-
-		go func(ctx context.Context, ch chan<- Result) {
-			defer wg.Done()
-			if (Result{}) != results {
-				ch <- results
-			}
-
-		}(ctx, ch)
 	}
+
+	wg.Add(1)
+	go func(ctx context.Context, ch chan<- Result) {
+		defer wg.Done()
+		if (Result{}) != result {
+			ch <- result
+		}
+	}(ctx, ch)
 
 	go func() {
 		defer close(ch)
 		wg.Wait()
 	}()
-
-	cansel()
 	return ch
 }
 
-func ParceForAny(textString string, phrase string) (res Result, err error) {
-	arr := strings.Split(string(textString), "\n")
-
-	for i, str := range arr {
-		ind := strings.Index(str, phrase)
-		if ind > -1 {
-			return  Result{
+func FindAny(phrase, search string) (result Result) {
+	for i, line := range strings.Split(search, "\n") {
+		if strings.Contains(line, phrase) {
+			return Result{
 				Phrase:  phrase,
-				Line:    str,
+				Line:    line,
 				LineNum: int64(i + 1),
-				ColNum:  int64(ind) + 1,
-			}, nil
+				ColNum:  int64(strings.Index(line, phrase)) + 1,
+			}
 		}
 	}
-	return res, nil
+	return result
 }
